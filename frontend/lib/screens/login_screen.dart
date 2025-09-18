@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart'; // ✅ Import HomePage
+import 'home_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -7,14 +7,14 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.pink[50], // soft playful background
+      backgroundColor: Colors.pink[50],
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Cute App Icon
+              // App Logo / Icon
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -37,7 +37,6 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // Fun Title
               const Text(
                 "Welcome Back! 👋",
                 style: TextStyle(
@@ -106,7 +105,6 @@ class LoginScreen extends StatelessWidget {
 
               const SizedBox(height: 15),
 
-              // Forgot Password
               TextButton(
                 onPressed: () {},
                 child: const Text(
@@ -115,7 +113,6 @@ class LoginScreen extends StatelessWidget {
                 ),
               ),
 
-              // Sign Up
               TextButton(
                 onPressed: () {},
                 child: const Text(
