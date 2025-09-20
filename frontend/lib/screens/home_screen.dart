@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -14,6 +16,29 @@ class HomePage extends StatelessWidget {
         ),
         centerTitle: true,
         backgroundColor: Colors.pink,
+        actions: [
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              return PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'logout') {
+                    await authProvider.logout();
+                  }
+                },
+                itemBuilder: (BuildContext context) => [
+                  const PopupMenuItem<String>(
+                    value: 'logout',
+                    child: Text('Logout'),
+                  ),
+                ],
+                child: const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Icon(Icons.account_circle),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),

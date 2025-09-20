@@ -12,6 +12,9 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8  # Optional (for iOS icons)
+  http: ^1.1.0  # For API calls
+  shared_preferences: ^2.2.2  # For storing auth tokens
+  provider: ^6.1.0  # For state management
 
 dev_dependencies:
   flutter_test:
