@@ -13,12 +13,15 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  // Add a controller for the email field for registration
+  final _emailController = TextEditingController();
   bool _isLogin = true;
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -26,10 +29,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final authProvider = context.read<AuthProvider>();
     authProvider.clearError();
 
-    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
+    // Basic validation
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty || (!_isLogin && _emailController.text.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill in all fields'),
+          content: Text('Please fill all required fields.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -43,22 +47,33 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
     } else {
-      // For registration, we'll need an email field
-      // For now, using username as email
       success = await authProvider.register(
         _usernameController.text,
-        '${_usernameController.text}@example.com', // Temporary email
+        _emailController.text,
         _passwordController.text,
       );
     }
     if (!mounted) return;
 
     if (success) {
-      // Navigation is handled by AuthWrapper
+      if (_isLogin) {
+        // On successful login, AuthWrapper will handle navigation to HomePage.
+      } else {
+        // On successful registration, show a message and switch to the login view.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration successful! Please log in.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        setState(() {
+          _isLogin = true;
+        });
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'Authentication failed'),
+          content: Text(authProvider.error ?? 'An unknown error occurred.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -142,7 +157,26 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
+
+              // Email Field - Shown only during registration
+              if (!_isLogin) ...[
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    hintText: 'Your Email',
+                    hintStyle: const TextStyle(color: Colors.purple),
+                    filled: true,
+                    fillColor: Colors.white,
+                    prefixIcon: const Icon(Icons.email, color: Colors.deepPurple),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
 
               // Error message
               Consumer<AuthProvider>(

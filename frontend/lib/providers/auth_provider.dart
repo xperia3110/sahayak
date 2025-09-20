@@ -91,13 +91,8 @@ class AuthProvider with ChangeNotifier {
 
     try {
       // Call the register method from the ApiService.
-      final response = await ApiService.register(username, email, password);
-      // Create a User object from the response.
-      _user = User.fromJson(response);
-      
-      // Store the new user's data locally, effectively logging them in.
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user', Uri(queryParameters: _user!.toJson()).query);
+      // We no longer automatically log the user in after registration.
+      await ApiService.register(username, email, password);
       
       return true; // Indicate successful registration.
     } catch (e) {
