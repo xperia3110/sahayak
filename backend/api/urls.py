@@ -2,11 +2,11 @@
 
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ChildViewSet, GameSessionViewSet, submit_drawing_data, login, register, logout
+from .views import ChildViewSet, GameSessionViewSet, submit_drawing_data, login, register, logout, analyze_stroke
 
 router = DefaultRouter()
-router.register(r'children', ChildViewSet)
-router.register(r'sessions', GameSessionViewSet)
+router.register(r'children', ChildViewSet, basename='child')
+router.register(r'sessions', GameSessionViewSet, basename='gamesession')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -14,4 +14,5 @@ urlpatterns = [
     path('auth/register/', register, name='register'),
     path('auth/logout/', logout, name='logout'),
     path('games/submit-drawing/', submit_drawing_data, name='submit_drawing'),
+    path('games/analyze-stroke/', analyze_stroke, name='analyze_stroke'),
 ]

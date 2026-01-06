@@ -40,7 +40,15 @@ class ApiService {
   }
 
   // Register
-  static Future<Map<String, dynamic>> register(String username, String email, String password) async {
+  static Future<Map<String, dynamic>> register({
+    required String username,
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+    String? middleName, 
+    required String phoneNumber,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/register/'),
@@ -49,6 +57,10 @@ class ApiService {
           'username': username,
           'email': email,
           'password': password,
+          'first_name': firstName,
+          'last_name': lastName,
+          'middle_name': middleName ?? '',
+          'phone_number': phoneNumber,
         }),
       );
 
@@ -56,7 +68,15 @@ class ApiService {
         return jsonDecode(response.body);
       } else {
         final error = jsonDecode(response.body);
-        throw Exception(error['error'] ?? 'Registration failed');
+        // Handle Django dictionary error response
+        String errorMessage = 'Registration failed';
+        if (error is Map) {
+          // If valid keys exist, take the first error message
+          if (error.isNotEmpty) {
+             errorMessage = error.values.first is List ? error.values.first[0] : error.values.first.toString();
+          }
+        }
+        throw Exception(errorMessage);
       }
     } catch (e) {
       throw Exception('Network error: $e');
@@ -172,6 +192,28 @@ class ApiService {
       if (response.statusCode != 201) {
         final error = jsonDecode(response.body);
         throw Exception(error['error'] ?? 'Failed to submit drawing data');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+  // Analyze Stroke
+  static Future<Map<String, dynamic>> analyzeStroke(String token, List<Map<String, dynamic>> userPoints) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/games/analyze-stroke/'),
+        headers: _getHeaders(token),
+        body: jsonEncode({
+          'user_points': userPoints,
+          // 'target_points': ... (Optional, add if we have guide path)
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error'] ?? 'Analysis failed');
       }
     } catch (e) {
       throw Exception('Network error: $e');

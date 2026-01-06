@@ -46,7 +46,7 @@ This approach provides a non-invasive, scalable, and engaging first step, empowe
     * A sound-based adventure where the child explores a magical forest and matches auditory prompts to pictures. This game tests **phonological awareness** and **auditory processing speed** without requiring any reading.
 
 2.  **Star Tracer (Dysgraphia Screening):**
-    * A cosmic journey where the child connects stars to form constellations. This game analyzes the child's **fine motor control, motor planning, and spatial awareness** by capturing the entire stroke kinematics of their drawings.
+    * A cosmic journey where the child traces the letters and symbols. This game analyzes the child's **fine motor control, motor planning, and spatial awareness** by capturing the entire stroke kinematics of their drawings.
 
 3.  **Monster Munch (Dyscalculia Screening):**
     * A playful feeding game where the child gives a cute monster the correct number of snacks. This game tests core **number sense, subitizing (instant quantity recognition), and magnitude comparison** skills.
@@ -91,67 +91,121 @@ sahayak/
 │   └── manage.py
 └── frontend/
     ├── lib/
-    │   ├── api/
     │   ├── models/
     │   ├── providers/
     │   ├── screens/
-    │   ├── widgets/
-    │   ├── utils/
+    │   ├── services/
+    │   ├── assets/
     │   └── main.dart
-    ├── assets/
     └── pubspec.yaml
 ```
 
 ---
 ## ⚙️ Setup and Installation
 
-### Backend (Django)
+### Prerequisites
+- **Git**
+- **Python 3.8+**
+- **Flutter SDK**
+
+### 1. Backend (Django)
 
 1.  **Navigate to the backend directory:**
     ```bash
     cd sahayak/backend
     ```
+
 2.  **Create and activate a virtual environment:**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # On Mac/Linux
-    # OR
-    .\venv\Scripts\Activate.ps1 # On Windows
+    
+    # On macOS/Linux:
+    source venv/bin/activate
+    
+    # On Windows:
+    .\venv\Scripts\Activate.ps1
     ```
+
 3.  **Install dependencies:**
     ```bash
-    pip install django djangorestframework django-cors-headers tensorflow pandas matplotlib scikit-learn
+    pip install -r requirements.txt
     ```
+
 4.  **Run database migrations:**
     ```bash
+    python manage.py makemigrations
     python manage.py migrate
     ```
-5.  **Create a superuser for the admin panel:**
+
+5.  **Create a superuser (for Admin access):**
     ```bash
     python manage.py createsuperuser
     ```
-6.  **Run the development server:**
+
+6.  **Start the server:**
     ```bash
     python manage.py runserver
     ```
-    The backend will be available at `http://127.0.0.1:8000`.
+    The backend will run at `http://127.0.0.1:8000`.
 
-### Frontend (Flutter)
+### 2. Frontend (Flutter)
 
-1.  **Ensure you have the Flutter SDK installed.**
-2.  **Navigate to the frontend directory:**
+1.  **Navigate to the frontend directory:**
     ```bash
     cd sahayak/frontend
     ```
-3.  **Get dependencies:**
+
+2.  **Install dependencies:**
     ```bash
     flutter pub get
     ```
-4.  **Run the application in Chrome:**
+
+3.  **Run the application:**
     ```bash
+    # For Web (Recommended for development)
     flutter run -d chrome
+
+    # For Desktop/Mobile
+    flutter run
     ```
-    The frontend will be available at a local port (e.g., `http://localhost:12345`).
+    The frontend typically runs at `http://localhost:55663` (port may vary).
+
+---
+## 🧪 Testing and Verification
+
+### Quick Integration Test
+1.  Ensure Backend is running.
+2.  Navigate to `sahayak/backend` and run:
+    ```bash
+    python test_api.py
+    ```
+    *(Note: This assumes `test_api.py` exists in the backend root based on project history)*
+
+### Manual Frontend Test
+1.  Open the Flutter app.
+2.  Navigate to the Login/Register screen.
+3.  Create a new user.
+4.  Verify you are redirected to the Home Screen.
+
+---
+## 🔌 API Endpoints
+Key endpoints available in the backend:
+
+- **Auth**:
+    - `POST /api/auth/register/`
+    - `POST /api/auth/login/`
+- **Children**:
+    - `GET /api/children/` (List profiles)
+    - `POST /api/children/` (Create profile)
+- **Sessions**:
+    - `GET /api/sessions/` (View history)
+    - `POST /api/sessions/` (Save game data)
+
+---
+## 🔧 Troubleshooting
+- **CORS Errors**: Ensure `django-cors-headers` is installed and `CORS_ALLOWED_ORIGINS` in `settings.py` includes your frontend URL.
+- **Database Errors**: Run `python manage.py migrate` to ensure the schema is up to date.
+- **Module Not Found**: Ensure you have activated the virtual environment (`source venv/bin/activate`) before running python commands.
 
 ---
 ## 🧑‍💻 Team Members

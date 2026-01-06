@@ -19,6 +19,7 @@ class AuthProvider with ChangeNotifier {
   User? get user => _user;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get token => _user?.token; // Expose token getter
   // A computed property that returns true if a user is logged in.
   // This is a clean way to check for authentication status.
   bool get isAuthenticated => _user != null;
@@ -84,19 +85,34 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Handles the user registration process.
-  Future<bool> register(String username, String email, String password) async {
+  Future<bool> register({
+    required String username,
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+    String? middleName,
+    required String phoneNumber,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
       // Call the register method from the ApiService.
-      // We no longer automatically log the user in after registration.
-      await ApiService.register(username, email, password);
+      await ApiService.register(
+        username: username,
+        email: email,
+        password: password,
+        firstName: firstName,
+        lastName: lastName,
+        middleName: middleName,
+        phoneNumber: phoneNumber,
+      );
       
       return true; // Indicate successful registration.
     } catch (e) {
-      _error = e.toString(); // Store any error.
+      _error = e.toString().replaceAll("Exception: ", ""); // Clean up error message
       return false; // Indicate failed registration.
     } finally {
       _isLoading = false;

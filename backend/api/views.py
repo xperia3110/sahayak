@@ -8,16 +8,25 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from .models import Child, GameSession, RawData
-from .serializers import ChildSerializer, GameSessionSerializer, RawDataSerializer
+from .utils.kinematics import KinematicAnalyzer
+from .serializers import ChildSerializer, GameSessionSerializer, RawDataSerializer, ParentRegistrationSerializer, UserSerializer
 
 class ChildViewSet(viewsets.ModelViewSet):
-    queryset = Child.objects.all()
     serializer_class = ChildSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        return Child.objects.filter(parent=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(parent=self.request.user)
+
 class GameSessionViewSet(viewsets.ModelViewSet):
-    queryset = GameSession.objects.all()
     serializer_class = GameSessionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return GameSession.objects.filter(child__parent=self.request.user)
     permission_classes = [IsAuthenticated]
 
 @api_view(['POST'])
@@ -48,14 +57,56 @@ def submit_drawing_data(request):
         defaults={'data_json': drawing_data}
     )
 
+    # Perform Analysis
+    from .ml_utils import analyze_drawing
+    from .models import AnalysisResult
+    
+    analysis_results = analyze_drawing(drawing_data)
+    
+    if "error" not in analysis_results:
+        AnalysisResult.objects.update_or_create(
+            session=game_session,
+            defaults={
+                'dyslexia_risk': analysis_results.get('dyslexia_risk'),
+                'dysgraphia_risk': analysis_results.get('dysgraphia_risk'),
+                'dyscalculia_risk': analysis_results.get('dyscalculia_risk'),
+                'report_summary': "Automated analysis based on drawing patterns."
+            }
+        )
+
     # Mark the session as completed
     game_session.completed = True
     game_session.save()
 
     return Response(
-        {"success": f"Data for session {session_id} saved successfully."},
+        {
+            "success": f"Data for session {session_id} saved successfully.",
+            "analysis": analysis_results
+        },
         status=status.HTTP_201_CREATED
     )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_stroke(request):
+    """
+    Analyze a stroke trace for Dysgraphia screening.
+    Expects JSON: { 
+        'user_points': [{'x':, 'y':, 't':}, ...], 
+        'target_points': [{'x':, 'y':}, ...] (Optional) 
+    }
+    """
+    user_points = request.data.get('user_points')
+    target_points = request.data.get('target_points')
+    
+    if not user_points:
+        return Response({'error': 'No points provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        results = KinematicAnalyzer.analyze_stroke(user_points, target_points)
+        return Response(results)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -75,11 +126,10 @@ def login(request):
     user = authenticate(username=username, password=password)
     if user:
         token, created = Token.objects.get_or_create(user=user)
+        user_serializer = UserSerializer(user)
         return Response({
             "token": token.key,
-            "user_id": user.id,
-            "username": user.username,
-            "email": user.email,
+            "user": user_serializer.data,
         })
     else:
         return Response(
@@ -91,43 +141,18 @@ def login(request):
 @permission_classes([AllowAny])
 def register(request):
     """
-    User registration endpoint
+    Parent registration endpoint
     """
-    username = request.data.get('username')
-    email = request.data.get('email')
-    password = request.data.get('password')
-    
-    if not username or not email or not password:
-        return Response(
-            {"error": "Username, email, and password are required."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    if User.objects.filter(username=username).exists():
-        return Response(
-            {"error": "Username already exists."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    if User.objects.filter(email=email).exists():
-        return Response(
-            {"error": "Email already exists."},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    user = User.objects.create_user(
-        username=username,
-        email=email,
-        password=password
-    )
-    
-    token = Token.objects.create(user=user)
-    return Response({
-        "token": token.key,
-        "user_id": user.id,
-        "username": user.username,
-        "email": user.email,
-    }, status=status.HTTP_201_CREATED)
+    serializer = ParentRegistrationSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        token, created = Token.objects.get_or_create(user=user)
+        user_serializer = UserSerializer(user)
+        return Response({
+            "token": token.key,
+            "user": user_serializer.data
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -143,3 +168,25 @@ def logout(request):
             {"error": "Error logging out."},
             status=status.HTTP_400_BAD_REQUEST
         )
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_stroke(request):
+    """
+    Analyze a stroke trace for Dysgraphia screening.
+    Expects JSON: { 
+        'user_points': [{'x':, 'y':, 't':}, ...], 
+        'target_points': [{'x':, 'y':}, ...] (Optional) 
+    }
+    """
+    user_points = request.data.get('user_points')
+    target_points = request.data.get('target_points')
+    
+    if not user_points:
+        return Response({'error': 'No points provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        results = KinematicAnalyzer.analyze_stroke(user_points, target_points)
+        return Response(results)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

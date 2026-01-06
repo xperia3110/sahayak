@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'registration_screen.dart';
 import 'home_screen.dart';
 import '../providers/auth_provider.dart';
 
@@ -13,67 +14,42 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  // Add a controller for the email field for registration
-  final _emailController = TextEditingController();
-  bool _isLogin = true;
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
-    _emailController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleAuth() async {
+  Future<void> _handleLogin() async {
     final authProvider = context.read<AuthProvider>();
     authProvider.clearError();
 
     // Basic validation
-    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty || (!_isLogin && _emailController.text.isEmpty)) {
+    if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill all required fields.'),
+          content: Text('Please fill all fields.'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    bool success;
-    if (_isLogin) {
-      success = await authProvider.login(
-        _usernameController.text,
-        _passwordController.text,
-      );
-    } else {
-      success = await authProvider.register(
-        _usernameController.text,
-        _emailController.text,
-        _passwordController.text,
-      );
-    }
+    final success = await authProvider.login(
+      _usernameController.text,
+      _passwordController.text,
+    );
+
     if (!mounted) return;
 
     if (success) {
-      if (_isLogin) {
-        // On successful login, AuthWrapper will handle navigation to HomePage.
-      } else {
-        // On successful registration, show a message and switch to the login view.
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please log in.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        setState(() {
-          _isLogin = true;
-        });
-      }
+      // Navigation is handled by AuthWrapper or main.dart based on state
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.error ?? 'An unknown error occurred.'),
+          content: Text(authProvider.error ?? 'Login failed. Please check credentials.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -83,42 +59,33 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.pink[50],
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(30.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // App Logo / Icon
+              // Logo
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.purple[200],
+                  color: Theme.of(context).primaryColor.withOpacity(0.1),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.purple.withOpacity(0.3),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    )
-                  ],
                 ),
-                child: const Icon(
-                  Icons.star_rounded,
+                child: Icon(
+                  Icons.local_hospital_rounded,
                   size: 80,
-                  color: Colors.yellow,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
 
-              const Text(
-                "Welcome Back! 👋",
-                style: TextStyle(
-                  fontSize: 30,
+              Text(
+                "Welcome Back",
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.deepPurple,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
 
@@ -127,69 +94,32 @@ class _LoginScreenState extends State<LoginScreen> {
               // Username Field
               TextField(
                 controller: _usernameController,
-                decoration: InputDecoration(
-                  hintText: 'Your Username',
-                  hintStyle: const TextStyle(color: Colors.purple),
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.person, color: Colors.deepPurple),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
+                decoration: const InputDecoration(
+                  labelText: 'Username',
+                  prefixIcon: Icon(Icons.person),
                 ),
               ),
+
               const SizedBox(height: 20),
 
               // Password Field
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: InputDecoration(
-                  hintText: 'Your Password',
-                  hintStyle: const TextStyle(color: Colors.purple),
-                  filled: true,
-                  fillColor: Colors.white,
-                  prefixIcon: const Icon(Icons.lock, color: Colors.deepPurple),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  prefixIcon: Icon(Icons.lock),
                 ),
               ),
+
               const SizedBox(height: 20),
 
-              // Email Field - Shown only during registration
-              if (!_isLogin) ...[
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    hintText: 'Your Email',
-                    hintStyle: const TextStyle(color: Colors.purple),
-                    filled: true,
-                    fillColor: Colors.white,
-                    prefixIcon: const Icon(Icons.email, color: Colors.deepPurple),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // Error message
+              // Error display
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
                   if (authProvider.error != null) {
-                    return Container(
-                      padding: const EdgeInsets.all(10),
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.red[100],
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red),
-                      ),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
                       child: Text(
                         authProvider.error!,
                         style: const TextStyle(color: Colors.red),
@@ -201,18 +131,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               ),
 
-              // Login/Register Button
+              // Login Button
               Consumer<AuthProvider>(
                 builder: (context, authProvider, child) {
                   return ElevatedButton(
-                    onPressed: authProvider.isLoading ? null : _handleAuth,
+                    onPressed: authProvider.isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      padding: const EdgeInsets.symmetric(horizontal: 80, vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 5,
+                      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                      minimumSize: const Size(double.infinity, 50),
                     ),
                     child: authProvider.isLoading
                         ? const SizedBox(
@@ -223,9 +149,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : Text(
-                            _isLogin ? "Log In" : "Sign Up",
-                            style: const TextStyle(fontSize: 22, color: Colors.white),
+                        : const Text(
+                            "Login",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   );
                 },
@@ -233,20 +162,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 15),
 
+              // Sign Up Link
               TextButton(
                 onPressed: () {
-                  setState(() {
-                    _isLogin = !_isLogin;
-                  });
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RegistrationScreen()),
+                  );
                 },
-                child: Text(
-                  _isLogin 
-                    ? "Don't have an account? Sign Up"
-                    : "Already have an account? Log In",
-                  style: const TextStyle(
-                    color: Colors.purple,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: const Text(
+                  "Don't have an account? Sign Up",
+                  style: TextStyle(fontSize: 16),
                 ),
               ),
             ],
