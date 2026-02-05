@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui' as ui;
-import 'dart:math';
-import 'dart:convert'; // For analyze response parsing if needed in logic, but it's in service.
+import 'package:flame/game.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../models/child.dart';
-import '../../widgets/shooting_star_bg.dart';
-import '../../painters/neon_path_painter.dart';
-import '../../widgets/stardust_path_animator.dart';
+import '../../game/star_tracer_game.dart';
 
 class StarTracerScreen extends StatefulWidget {
   final int childId;
@@ -21,50 +17,20 @@ class StarTracerScreen extends StatefulWidget {
 }
 
 class _StarTracerScreenState extends State<StarTracerScreen> {
-  // List<Child> _children = []; // Removed
-  // Child? _selectedChild; // Removed
-  bool _isLoading = true; // Still use for session creation
+  bool _isLoading = true;
   int? _sessionId;
+  Map<String, dynamic>? _debugMetrics;
   
-  // Drawing state
-  List<Offset?> _points = [];
-  final List<Map<String, dynamic>> _recordedPoints = []; // For backend: {x, y, t}
-  Map<String, dynamic>? _debugMetrics; // For Debug Panel
-  
-  // Game Logic
-  Path? _targetPath;
-  bool _showGuide = true; // Show guide first
+  // A-Z Logic
+  String _currentLetter = 'A';
+  final List<String> _letters = ['A', 'B', 'C'];
+  int _letterIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    // Start session immediately
     WidgetsBinding.instance.addPostFrameCallback((_) => _startSession());
   }
-
-  // Calculate path based on screen size
-  Path _createStarPath(Size size) {
-    Path path = Path();
-    double cx = size.width / 2;
-    double cy = size.height / 2;
-    double r = size.width * 0.4; // Responsive radius
-    double rInner = r * 0.4; // Inner radius for star
-
-    double angle = -pi / 2; // Start at top
-    double step = pi / 5; // 36 degrees (10 steps for 5 points)
-
-    path.moveTo(cx + r * cos(angle), cy + r * sin(angle));
-    for (int i = 0; i < 5; i++) {
-      angle += step;
-      path.lineTo(cx + rInner * cos(angle), cy + rInner * sin(angle));
-      angle += step;
-      path.lineTo(cx + r * cos(angle), cy + r * sin(angle));
-    }
-    path.close();
-    return path;
-  }
-
-  // Removed _fetchChildren and _showChildSelectionDialog
 
   Future<void> _startSession() async {
     try {
@@ -79,8 +45,10 @@ class _StarTracerScreenState extends State<StarTracerScreen> {
       setState(() {
         _sessionId = sessionData['id'];
         _isLoading = false;
+        _currentLetter = _letters[0];
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to start session: $e')),
@@ -89,208 +57,154 @@ class _StarTracerScreenState extends State<StarTracerScreen> {
     }
   }
 
-  Future<void> _submitDrawing() async {
-    if (_sessionId == null || _recordedPoints.isEmpty) return;
+  StarTracerGame? _game;
 
+  Future<void> _handleTraceComplete(List<Map<String, dynamic>> points) async {
+    // Show Analyzing HUD? Be quick.
     try {
       final authProvider = context.read<AuthProvider>();
-      
-      // 1. Submit Data for Storage (Optional/Parallel)
-      // await ApiService.submitDrawingData(...) 
-
-      // 2. Analyze for Immediate Feedback (Debug Panel)
       final results = await ApiService.analyzeStroke(
         authProvider.user!.token!,
-        _recordedPoints,
+        points,
       );
       
       if (!mounted) return;
-
       setState(() {
         _debugMetrics = results;
       });
-
+      
+      // Show Validation Success
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Analysis Complete! Check Debug Panel.')),
+        SnackBar(
+          content: Text('Good Job! Score: ${results['score'].toStringAsFixed(1)}'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.green,
+        ),
       );
-      // Do not pop context, so they can see the debug panel
+
+      // Auto-advance after delay
+      Future.delayed(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        _game?.nextLevel();
+        setState(() {
+            _debugMetrics = null; // Hide old score for new letter
+        });
+      });
+      
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to analyze: $e')),
+        SnackBar(content: Text('Analysis failed: $e')),
       );
+       // Allow retry? For now, maybe just advance or reset?
+       // _game?.nextLevel(); // Unblock
     }
+  }
+  
+  void _handleGameComplete() {
+      // Show Final Score / Summary
+      showDialog(
+          context: context, 
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+              backgroundColor: Colors.black,
+              title: const Text("Mission Complete!", style: TextStyle(color: Colors.cyan)),
+              content: const Text("You have mapped the sector!", style: TextStyle(color: Colors.white70)),
+              actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text("Return to Base"),
+                  )
+              ],
+          )
+      );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading || _sessionId == null) {
+        return const Scaffold(
+            backgroundColor: Colors.black,
+            body: Center(child: CircularProgressIndicator(color: Colors.cyan))
+        );
+    }
+
+    _game ??= StarTracerGame(
+        onLetterTraceComplete: _handleTraceComplete,
+        onGameComplete: _handleGameComplete,
+    );
+
     return Scaffold(
-      extendBodyBehindAppBar: true, 
-      appBar: AppBar(
-        title: const Text('Star Tracer', style: TextStyle(color: Colors.white70)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white70),
-        actions: [
-          if (_sessionId != null)
-            IconButton(
-              icon: const Icon(Icons.check),
-              onPressed: _submitDrawing,
-            )
-        ],
-      ),
-      body: Stack(
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.center,
-                radius: 1.5,
-                colors: [
-                  Color(0xFF2E003E), // Deep Violet
-                  Colors.black,
-                ],
-              ),
-            ),
-            child: ShootingStarWidget(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.cyan))
-                  : _sessionId == null
-                      ? const Center(child: Text('Initializing game...', style: TextStyle(color: Colors.white54)))
-                      : LayoutBuilder(
-                          builder: (context, constraints) {
-                            // Generate path if not ready
-                            if (_targetPath == null) {
-                              _targetPath = _createStarPath(constraints.biggest);
-                            }
-                            
-                            return Stack(
-                              children: [
-                                // Layer 1: Stardust Guide Animation
-                                if (_showGuide)
-                                  StardustPathAnimator(
-                                    path: _targetPath!,
-                                    duration: const Duration(seconds: 3),
-                                    onAnimationComplete: () {
-                                      setState(() {
-                                        _showGuide = false; // Allow drawing
-                                      });
-                                    },
-                                  ),
-                                
-                                // Layer 2: Static Guide (Faint Background) - Visible during drawing
-                                if (!_showGuide)
-                                  CustomPaint(
-                                    painter: _StaticGuidePainter(_targetPath!),
-                                    size: Size.infinite,
-                                  ),
-
-                                // Layer 3: User Interaction
-                                GestureDetector(
-                                  onPanUpdate: (details) {
-                                    if (_showGuide) return; // Block input during animation
-                                    setState(() {
-                                      RenderBox renderBox = context.findRenderObject() as RenderBox;
-                                      Offset localPosition = renderBox.globalToLocal(details.globalPosition);
-                                      _points.add(localPosition);
-                                      
-                                      _recordedPoints.add({
-                                        'x': localPosition.dx,
-                                        'y': localPosition.dy,
-                                        't': DateTime.now().millisecondsSinceEpoch,
-                                      });
-                                    });
-                                  },
-                                  onPanEnd: (details) {
-                                      if (_showGuide) return;
-                                      _points.add(null);
-                                  },
-                                  child: CustomPaint(
-                                    painter: NeonPathPainter(points: _points),
-                                    size: Size.infinite,
-                                  ),
-                                ),
-                              ],
-                            );
-                          }
-                        ),
-            ),
-          ),
-          
-          // Developer Debug Panel Overlay
-          if (_debugMetrics != null)
-            Positioned(
-              top: 100,
-              right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                width: 200,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.8),
-                  border: Border.all(color: Colors.cyan.withOpacity(0.5)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text("DEBUG: Kinematics", style: TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold)),
-                    const Divider(color: Colors.cyan),
-                    Text("Score: ${_debugMetrics!['score'].toStringAsFixed(1)}", style: const TextStyle(color: Colors.white)),
-                    Text("RMSE: ${_debugMetrics!['rmse'].toStringAsFixed(2)}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                    Text("Jitter: ${_debugMetrics!['jitter'].toStringAsFixed(2)}", style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                    const SizedBox(height: 10),
-                    ElevatedButton(
-                      onPressed: () {
-                         setState(() {
-                           _debugMetrics = null;
-                           _points.clear();
-                           _recordedPoints.clear();
-                           // We can reset guide here if we want replay
-                           // _showGuide = true; 
-                         });
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan.withOpacity(0.3)),
-                      child: const Text("Reset", style: TextStyle(color: Colors.cyan)),
-                    )
-                  ],
-                ),
-              ),
-            ),
-        ],
+      body: GameWidget<StarTracerGame>(
+        game: _game!,
+        initialActiveOverlays: const ['HUD'],
+        overlayBuilderMap: {
+          'HUD': (BuildContext context, StarTracerGame game) {
+             return ValueListenableBuilder<bool>(
+               valueListenable: game.isUserTurnNotifier,
+               builder: (context, isUserTurn, child) {
+                 return Stack(
+                   children: [
+                     // Back Button
+                 Positioned(
+                   top: 40, 
+                   left: 10,
+                   child: IconButton(
+                     icon: const Icon(Icons.arrow_back, color: Colors.white),
+                     onPressed: () => Navigator.pop(context),
+                   ), 
+                 ),
+                 
+                 // Metric Overlay (Transient)
+                 if (_debugMetrics != null)
+                   Positioned(
+                     top: 100,
+                     right: 20,
+                     child: Container(
+                       padding: const EdgeInsets.all(16),
+                       decoration: BoxDecoration(
+                         color: Colors.black.withOpacity(0.8),
+                         border: Border.all(color: Colors.cyan),
+                         borderRadius: BorderRadius.circular(12),
+                       ),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           Text("Score: ${_debugMetrics!['score']?.toStringAsFixed(1)}", style: const TextStyle(color: Colors.greenAccent, fontSize: 24, fontWeight: FontWeight.bold)),
+                           Text("Accuracy: ${_debugMetrics!['rmse']?.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white70)),
+                         ],
+                       ),
+                     ),
+                   ),
+                   
+                 // Submit Button (Bottom Center) - Only show when user's turn
+                 if (game.isUserTurn)
+                   Positioned(
+                     bottom: 40,
+                     left: 0,
+                     right: 0,
+                     child: Center(
+                       child: ElevatedButton.icon(
+                         onPressed: () {
+                           game.submitTrace();
+                         },
+                         icon: const Icon(Icons.check, color: Colors.black),
+                         label: const Text("Done!", style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
+                         style: ElevatedButton.styleFrom(
+                           backgroundColor: Colors.cyanAccent,
+                           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                         ),
+                       ),
+                     ),
+                     ),
+                   ],
+                 );
+               },
+             );
+          }
+        },
       ),
     );
   }
-}
-
-// DrawingPainter class removed - using NeonPathPainter
-
-class _StaticGuidePainter extends CustomPainter {
-  final Path path;
-  _StaticGuidePainter(this.path);
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawPath(path, Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      // Use simple DashPathEffect if needed, or manually draw points? 
-      // Manual approach is safer if PathDashPathEffect is troublesome.
-      // But PathDashPathEffect is standard. Let's try fixing the namespace.
-      // Maybe the error is misleading and it's simply a missing import or alias mismatch.
-      // I'll assume alias 'ui' is correct but maybe 'PathDashPathEffectStyle' needs specific handling?
-      // No, it's an enum. ui.PathDashPathEffectStyle.rotate
-    );
-    
-    // Manual dash effect fallback if the fancy one fails
-    // Actually, let's just make it a detailed Solid line for now to fix the build 
-    // and see if that resolves the error. A solid guide is acceptable MVP.
-    // Or I can use a simpler dash pattern if I had a helper, but I don't.
-    // I will comment out the pathEffect for now to get it building, 
-    // unless I'm sure about the syntax.
-    // Wait, I can try to use just `ui.PathDashPathEffect` again but careful.
-    // I'll just remove pathEffect to unblock the build. Minimal aesthetic loss.
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

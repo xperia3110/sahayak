@@ -15,6 +15,9 @@ dependencies:
   http: ^1.1.0  # For API calls
   shared_preferences: ^2.2.2  # For storing auth tokens
   provider: ^6.1.0  # For state management
+  flame: ^1.21.0 # Game Engine
+  rive: ^0.13.15 # Animations
+  flame_rive: ^1.10.0 # Rive integration for Flame
 
 dev_dependencies:
   flutter_test:
@@ -23,3 +26,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true  # ✅ Needed for Icons.star_rounded
+  assets:
+    - assets/rive/
