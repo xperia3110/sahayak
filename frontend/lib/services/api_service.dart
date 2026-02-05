@@ -198,15 +198,23 @@ class ApiService {
     }
   }
   // Analyze Stroke
-  static Future<Map<String, dynamic>> analyzeStroke(String token, List<Map<String, dynamic>> userPoints) async {
+  static Future<Map<String, dynamic>> analyzeStroke(
+    String token, 
+    List<Map<String, dynamic>> userPoints,
+    {List<Map<String, double>>? targetPoints}
+  ) async {
     try {
+      final body = {
+        'user_points': userPoints,
+      };
+      if (targetPoints != null && targetPoints.isNotEmpty) {
+        body['target_points'] = targetPoints;
+      }
+      
       final response = await http.post(
         Uri.parse('$baseUrl/games/analyze-stroke/'),
         headers: _getHeaders(token),
-        body: jsonEncode({
-          'user_points': userPoints,
-          // 'target_points': ... (Optional, add if we have guide path)
-        }),
+        body: jsonEncode(body),
       );
 
       if (response.statusCode == 200) {

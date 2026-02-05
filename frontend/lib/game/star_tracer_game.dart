@@ -45,6 +45,29 @@ class StarTracerGame extends FlameGame with PanDetector {
   // Public getter for HUD
   bool get isUserTurn => _isUserTurn;
   
+  // Get current letter for display/analysis
+  String get currentLetter => _currentLetterIndex < _sessionLetters.length 
+      ? _sessionLetters[_currentLetterIndex] 
+      : '';
+  
+  // Get target points for scoring
+  List<Map<String, double>> getTargetPoints() {
+    if (_currentGuide == null) return [];
+    final path = _currentGuide!.getPath();
+    final metrics = path.computeMetrics();
+    List<Map<String, double>> points = [];
+    
+    for (final metric in metrics) {
+      for (double d = 0; d <= metric.length; d += 10) {
+        final pos = metric.getTangentForOffset(d)?.position;
+        if (pos != null) {
+          points.add({'x': pos.dx, 'y': pos.dy});
+        }
+      }
+    }
+    return points;
+  }
+  
   // Data Collection
   final List<Map<String, dynamic>> _recordedPoints = [];
   bool _isRecording = false;

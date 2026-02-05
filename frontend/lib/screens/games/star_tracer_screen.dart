@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
 import '../../models/child.dart';
 import '../../game/star_tracer_game.dart';
+import 'analysis_report_screen.dart';
 
 class StarTracerScreen extends StatefulWidget {
   final int childId;
@@ -58,17 +59,30 @@ class _StarTracerScreenState extends State<StarTracerScreen> {
   }
 
   StarTracerGame? _game;
+  
+  // Store all letter results for final report
+  final List<Map<String, dynamic>> _allResults = [];
 
   Future<void> _handleTraceComplete(List<Map<String, dynamic>> points) async {
-    // Show Analyzing HUD? Be quick.
     try {
       final authProvider = context.read<AuthProvider>();
+      final targetPoints = _game?.getTargetPoints() ?? [];
+      final currentLetter = _game?.currentLetter ?? '?';
+      
       final results = await ApiService.analyzeStroke(
         authProvider.user!.token!,
         points,
+        targetPoints: targetPoints,
       );
       
       if (!mounted) return;
+      
+      // Store result with letter
+      _allResults.add({
+        'letter': currentLetter,
+        ...results,
+      });
+      
       setState(() {
         _debugMetrics = results;
       });
@@ -87,7 +101,7 @@ class _StarTracerScreenState extends State<StarTracerScreen> {
         if (!mounted) return;
         _game?.nextLevel();
         setState(() {
-            _debugMetrics = null; // Hide old score for new letter
+            _debugMetrics = null;
         });
       });
       
@@ -96,27 +110,16 @@ class _StarTracerScreenState extends State<StarTracerScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Analysis failed: $e')),
       );
-       // Allow retry? For now, maybe just advance or reset?
-       // _game?.nextLevel(); // Unblock
     }
   }
   
   void _handleGameComplete() {
-      // Show Final Score / Summary
-      showDialog(
-          context: context, 
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-              backgroundColor: Colors.black,
-              title: const Text("Mission Complete!", style: TextStyle(color: Colors.cyan)),
-              content: const Text("You have mapped the sector!", style: TextStyle(color: Colors.white70)),
-              actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text("Return to Base"),
-                  )
-              ],
-          )
+      // Navigate to Analysis Report Screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AnalysisReportScreen(results: _allResults),
+        ),
       );
   }
 
