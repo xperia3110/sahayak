@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'games/star_tracer_screen.dart';
-// Import Echo Explorers & Monster Munch when created (using placeholders for now)
+import 'games/echo_explorers_screen.dart';
 
 class GameHubScreen extends StatelessWidget {
   final String childId;
@@ -65,7 +65,13 @@ class GameHubScreen extends StatelessWidget {
                     color: Colors.blue.shade300,
                     icon: Icons.hearing,
                     onTap: () {
-                      _showComingSoon(context, "Echo Explorers");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => EchoExplorersScreen(
+                          childId: int.tryParse(childId) ?? 0,
+                          childName: childName,
+                        )),
+                      );
                     },
                   ),
                   const SizedBox(height: 20),

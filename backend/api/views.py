@@ -109,6 +109,74 @@ def analyze_stroke(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_dyslexia(request):
+    """
+    Analyze phonological awareness and RAN for Dyslexia screening.
+    Expects JSON: {
+        'results': [
+            {
+                'question_id': str,
+                'prompt': str,
+                'user_answer': str,
+                'is_correct': bool,
+                'reaction_time_ms': int
+            }
+        ]
+    }
+    """
+    results = request.data.get('results', [])
+    
+    if not results:
+        return Response({'error': 'No results provided'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        # Calculate metrics
+        total_questions = len(results)
+        correct_count = sum(1 for r in results if r.get('is_correct'))
+        accuracy = (correct_count / total_questions) * 100 if total_questions > 0 else 0
+        
+        # Reaction time analysis (crucial for Dyslexia)
+        reaction_times = [r.get('reaction_time_ms', 0) for r in results]
+        avg_reaction_time = sum(reaction_times) / len(reaction_times) if reaction_times else 0
+        
+        # RAN score based on reaction time
+        # Slower processing (<2s = good, 2-4s = normal, >4s = delayed)
+        if avg_reaction_time < 2000:
+            ran_score = 90
+            processing_speed = 'fast'
+        elif avg_reaction_time < 4000:
+            ran_score = 70
+            processing_speed = 'normal'
+        else:
+            ran_score = 40
+            processing_speed = 'delayed'
+        
+        # Overall phonological awareness score
+        phonological_score = accuracy
+        
+        # Risk assessment
+        risk_level = 'low'
+        if phonological_score < 60 or ran_score < 50:
+            risk_level = 'high'
+        elif phonological_score < 80 or ran_score < 70:
+            risk_level = 'moderate'
+        
+        return Response({
+            'accuracy': round(accuracy, 1),
+            'correct_count': correct_count,
+            'total_questions': total_questions,
+            'avg_reaction_time_ms': round(avg_reaction_time),
+            'ran_score': ran_score,
+            'processing_speed': processing_speed,
+            'phonological_score': round(phonological_score, 1),
+            'risk_level': risk_level,
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
 @permission_classes([AllowAny])
 def login(request):
     """
