@@ -69,7 +69,6 @@ class GameHubScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(builder: (context) => EchoExplorersScreen(
                           childId: int.tryParse(childId) ?? 0,
-                          childName: childName,
                         )),
                       );
                     },

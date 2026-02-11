@@ -1,16 +1,16 @@
+import 'dart:math';
 import 'package:flame/components.dart';
-import 'package:flame_rive/flame_rive.dart';
 import 'package:rive/rive.dart';
 
 /// Hero states for state machine control
 enum HeroState { idle, talking, success, fail }
 
-/// Echo Hero character with state machine management
+/// Echo Hero character - displays just the character
 class HeroComponent extends PositionComponent with HasGameRef {
-  RiveComponent? _riveComponent;
+  Artboard? _artboard;
   StateMachineController? _stateMachine;
   
-  // State machine inputs - try various common names
+  // State machine inputs
   SMITrigger? _successTrigger;
   SMITrigger? _failTrigger;
   SMIBool? _isTalking;
@@ -18,70 +18,111 @@ class HeroComponent extends PositionComponent with HasGameRef {
   
   HeroState _currentState = HeroState.idle;
   HeroState get currentState => _currentState;
+  bool _isLoaded = false;
 
   @override
   Future<void> onLoad() async {
-    // Position at bottom center, larger size
-    final heroSize = Vector2(300, 300);
+    // Position at bottom center
+    final heroSize = Vector2(280, 280);
     size = heroSize;
     anchor = Anchor.bottomCenter;
-    position = Vector2(gameRef.size.x / 2, gameRef.size.y - 20);
+    position = Vector2(gameRef.size.x / 2, gameRef.size.y - 30);
 
-    // Load Rive file
-    final riveFile = await RiveFile.asset('assets/rive/echo_rive/echo_hero.riv');
-    final artboard = riveFile.mainArtboard.instance();
-    
-    // Try multiple state machine names
-    for (final name in ['State Machine 1', 'StateMachine', 'Main', 'Animation']) {
-      _stateMachine = StateMachineController.fromArtboard(artboard, name);
-      if (_stateMachine != null) break;
-    }
-    
-    if (_stateMachine != null) {
-      artboard.addController(_stateMachine!);
+    try {
+      // Use RiveFile.asset - it handles initialization automatically
+      final riveFile = await RiveFile.asset('assets/rive/echo_rive/echo_hero.riv');
       
-      // Find inputs by various common names
-      for (final input in _stateMachine!.inputs) {
-        final nameLower = input.name.toLowerCase();
-        
-        if (input is SMITrigger) {
-          if (nameLower.contains('success') || nameLower.contains('win') || nameLower.contains('happy')) {
-            _successTrigger = input;
-          } else if (nameLower.contains('fail') || nameLower.contains('sad') || nameLower.contains('wrong')) {
-            _failTrigger = input;
-          }
-        } else if (input is SMIBool) {
-          if (nameLower.contains('talk') || nameLower.contains('speak')) {
-            _isTalking = input;
-          }
-        } else if (input is SMINumber) {
-          if (nameLower.contains('state') || nameLower == 'number 1') {
-            _stateInput = input;
-          }
+      _artboard = riveFile.mainArtboard.instance();
+      
+      // Try multiple state machine names
+      for (final name in ['State Machine 1', 'StateMachine', 'Main', 'Animation']) {
+        _stateMachine = StateMachineController.fromArtboard(_artboard!, name);
+        if (_stateMachine != null) {
+          print('Hero: Found state machine: $name');
+          break;
         }
       }
-    } else {
-      // Fallback: add first available animation
-      for (final animation in riveFile.mainArtboard.animations) {
-        artboard.addController(SimpleAnimation(animation.name));
-        break;
+      
+      if (_stateMachine != null) {
+        _artboard!.addController(_stateMachine!);
+        
+        // Find inputs
+        for (final input in _stateMachine!.inputs) {
+          print('Hero input: ${input.name} (${input.runtimeType})');
+          final nameLower = input.name.toLowerCase();
+          
+          if (input is SMITrigger) {
+            if (nameLower.contains('success') || nameLower.contains('win') || nameLower.contains('happy')) {
+              _successTrigger = input;
+            } else if (nameLower.contains('fail') || nameLower.contains('sad') || nameLower.contains('wrong')) {
+              _failTrigger = input;
+            }
+          } else if (input is SMIBool) {
+            if (nameLower.contains('talk') || nameLower.contains('speak')) {
+              _isTalking = input;
+            }
+          } else if (input is SMINumber) {
+            if (nameLower.contains('state') || nameLower == 'number 1') {
+              _stateInput = input;
+            }
+          }
+        }
+      } else {
+        // Fallback: add first available animation
+        print('Hero: No state machine found, trying simple animation');
+        for (final animation in riveFile.mainArtboard.animations) {
+          print('Hero animation: ${animation.name}');
+          _artboard!.addController(SimpleAnimation(animation.name));
+          break;
+        }
       }
+      
+      _isLoaded = true;
+      print('Hero loaded successfully!');
+    } catch (e) {
+      print('Failed to load hero Rive: $e');
     }
-    
-    _riveComponent = RiveComponent(
-      artboard: artboard,
-      size: heroSize,
-    );
-    add(_riveComponent!);
     
     await super.onLoad();
   }
 
-  /// Switch the hero to a specific state
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_isLoaded && _artboard != null) {
+      _artboard!.advance(dt);
+    }
+  }
+
+  @override
+  void render(canvas) {
+    if (!_isLoaded || _artboard == null) return;
+    
+    canvas.save();
+    
+    // Scale artboard to fit hero size
+    final artboardWidth = _artboard!.width;
+    final artboardHeight = _artboard!.height;
+    
+    final scaleX = size.x / artboardWidth;
+    final scaleY = size.y / artboardHeight;
+    final scale = min(scaleX, scaleY); // Fit within bounds
+    
+    // Center the artboard
+    final offsetX = (size.x - artboardWidth * scale) / 2;
+    final offsetY = (size.y - artboardHeight * scale) / 2;
+    
+    canvas.translate(offsetX, offsetY);
+    canvas.scale(scale);
+    
+    _artboard!.draw(canvas);
+    
+    canvas.restore();
+  }
+
   void setState(HeroState state) {
     _currentState = state;
     
-    // Try using number input if available
     if (_stateInput != null) {
       switch (state) {
         case HeroState.idle:
@@ -99,7 +140,6 @@ class HeroComponent extends PositionComponent with HasGameRef {
       }
     }
     
-    // Also try bool/trigger inputs
     switch (state) {
       case HeroState.idle:
         _isTalking?.value = false;
@@ -118,14 +158,12 @@ class HeroComponent extends PositionComponent with HasGameRef {
     }
   }
 
-  /// Play talking animation for a duration
   Future<void> talk({Duration duration = const Duration(seconds: 2)}) async {
     setState(HeroState.talking);
     await Future.delayed(duration);
     setState(HeroState.idle);
   }
 
-  /// Play success animation
   void celebrate() {
     setState(HeroState.success);
     Future.delayed(const Duration(seconds: 2), () {
@@ -135,7 +173,6 @@ class HeroComponent extends PositionComponent with HasGameRef {
     });
   }
 
-  /// Play fail animation
   void showEncouragement() {
     setState(HeroState.fail);
     Future.delayed(const Duration(seconds: 2), () {

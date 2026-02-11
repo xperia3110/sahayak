@@ -3,11 +3,10 @@ import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-import 'components/forest_background.dart';
-import 'components/hero_component.dart';
 import 'components/bubble_component.dart';
 import 'components/prompt_box.dart';
 import 'data/question_bank.dart';
+import 'managers/audio_manager.dart';
 
 /// Game phase states
 enum EchoGamePhase { intro, question, waitingForAnswer, feedback, complete }
@@ -40,14 +39,16 @@ class QuestionResult {
   };
 }
 
-/// Main Echo Explorers game class
+/// Main Echo Explorers game class - handles bubbles and prompt only
+/// Forest background and Hero are rendered by Flutter as Rive widgets
 class EchoExplorersGame extends FlameGame {
   // Callbacks
   final Function(List<QuestionResult>) onGameComplete;
 
+  // Audio
+  final AudioManager _audio = AudioManager();
+
   // Components
-  ForestBackground? _forest;
-  HeroComponent? _hero;
   PromptBox? _promptBox;
   final List<BubbleComponent> _bubbles = [];
 
@@ -65,24 +66,20 @@ class EchoExplorersGame extends FlameGame {
 
   EchoExplorersGame({required this.onGameComplete});
 
+  // Transparent background - let Flutter Rive widgets show through
   @override
-  Color backgroundColor() => const Color(0xFF1A472A); // Deep forest green
+  Color backgroundColor() => Colors.transparent;
 
   @override
   Future<void> onLoad() async {
+    // Initialize audio
+    await _audio.init();
+
     // Initialize questions (5 random from bank)
     _questions = QuestionBank.getRandomQuestions(5);
 
-    // Layer 1: Forest Background (fills entire screen)
-    _forest = ForestBackground();
-    await add(_forest!);
-
-    // Layer 2: Hero Character (bottom center)
-    _hero = HeroComponent();
-    await add(_hero!);
-
     // Brief delay then start
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 800));
     _startIntro();
 
     await super.onLoad();
@@ -97,7 +94,7 @@ class EchoExplorersGame extends FlameGame {
     });
   }
 
-  void _showQuestion() {
+  void _showQuestion() async {
     if (_currentQuestionIndex >= _questions.length) {
       _completeGame();
       return;
@@ -112,12 +109,12 @@ class EchoExplorersGame extends FlameGame {
     // Create new prompt box
     _promptBox = PromptBox(prompt: question.prompt);
     add(_promptBox!);
+    
+    // Speak the question using TTS
+    await _audio.speakQuestion(question.prompt);
 
-    // Hero talks
-    _hero?.talk(duration: const Duration(seconds: 2));
-
-    // Spawn bubbles after hero talks
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    // Spawn bubbles after speaking
+    Future.delayed(const Duration(milliseconds: 500), () {
       _spawnBubbles(question);
     });
   }
@@ -135,21 +132,20 @@ class EchoExplorersGame extends FlameGame {
     // Shuffle options
     final shuffledOptions = List<String>.from(question.options)..shuffle();
     
-    // Calculate bubble positions in middle area of screen
-    // Area between prompt box (y=180) and hero (y starts around screenHeight - 300)
+    // Calculate bubble positions - middle area of screen
     final screenWidth = size.x;
     final screenHeight = size.y;
     
-    // Bubble area: from y=200 to y=screenHeight - 350
+    // Bubble area: from y=200 to y=screenHeight - 400 (leave room for hero)
     final bubbleAreaTop = 220.0;
-    final bubbleAreaBottom = screenHeight - 380;
+    final bubbleAreaBottom = screenHeight - 420;
     final bubbleAreaHeight = bubbleAreaBottom - bubbleAreaTop;
     
     // Create 3 bubbles in a nice spread
     final positions = [
-      Vector2(screenWidth * 0.25, bubbleAreaTop + bubbleAreaHeight * 0.2),
-      Vector2(screenWidth * 0.75, bubbleAreaTop + bubbleAreaHeight * 0.35),
-      Vector2(screenWidth * 0.5, bubbleAreaTop + bubbleAreaHeight * 0.65),
+      Vector2(screenWidth * 0.25, bubbleAreaTop + bubbleAreaHeight * 0.1),
+      Vector2(screenWidth * 0.72, bubbleAreaTop + bubbleAreaHeight * 0.35),
+      Vector2(screenWidth * 0.45, bubbleAreaTop + bubbleAreaHeight * 0.6),
     ];
 
     // Shuffle positions for variety
@@ -171,7 +167,7 @@ class EchoExplorersGame extends FlameGame {
     }
   }
 
-  void _handleBubbleTap(String answer, bool isCorrect) {
+  void _handleBubbleTap(String answer, bool isCorrect) async {
     if (_phase != EchoGamePhase.waitingForAnswer) return;
     
     _phase = EchoGamePhase.feedback;
@@ -208,11 +204,11 @@ class EchoExplorersGame extends FlameGame {
     _promptBox?.removeFromParent();
     _promptBox = null;
 
-    // Hero reaction
+    // TTS feedback
     if (isCorrect) {
-      _hero?.celebrate();
+      await _audio.speakSuccess();
     } else {
-      _hero?.showEncouragement();
+      await _audio.speakEncouragement();
     }
 
     // Next question after delay
@@ -222,7 +218,7 @@ class EchoExplorersGame extends FlameGame {
     });
   }
 
-  void _completeGame() {
+  void _completeGame() async {
     _phase = EchoGamePhase.complete;
     
     // Remove prompt if still there
@@ -245,13 +241,20 @@ class EchoExplorersGame extends FlameGame {
       position: Vector2(size.x / 2, size.y / 3),
     );
     add(completeText);
-
-    _hero?.celebrate();
+    
+    // Speak completion message
+    await _audio.speakComplete();
 
     // Callback with results
     Future.delayed(const Duration(seconds: 2), () {
       onGameComplete(_results);
     });
+  }
+
+  @override
+  void onRemove() {
+    _audio.dispose();
+    super.onRemove();
   }
 
   /// Get current results for external access

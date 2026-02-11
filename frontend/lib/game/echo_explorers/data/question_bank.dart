@@ -20,31 +20,31 @@ class QuestionBank {
     Question(
       id: 'rhyme_cat',
       prompt: 'CAT',
-      options: ['BAT', 'DOG', 'SUN'],
+      options: ['BAT', 'DOG', 'SUN', 'FISH'],
       correctAnswer: 'BAT',
     ),
     Question(
       id: 'rhyme_ball',
       prompt: 'BALL',
-      options: ['TALL', 'ROCK', 'FISH'],
+      options: ['TALL', 'ROCK', 'FISH', 'TREE'],
       correctAnswer: 'TALL',
     ),
     Question(
       id: 'rhyme_cake',
       prompt: 'CAKE',
-      options: ['TREE', 'LAKE', 'BIRD'],
+      options: ['TREE', 'LAKE', 'BIRD', 'CAR'],
       correctAnswer: 'LAKE',
     ),
     Question(
       id: 'rhyme_star',
       prompt: 'STAR',
-      options: ['CAR', 'MOON', 'WIND'],
+      options: ['CAR', 'MOON', 'WIND', 'TREE'],
       correctAnswer: 'CAR',
     ),
     Question(
       id: 'rhyme_moon',
       prompt: 'MOON',
-      options: ['SPOON', 'TREE', 'ROCK'],
+      options: ['SPOON', 'TREE', 'ROCK', 'FISH'],
       correctAnswer: 'SPOON',
     ),
     
@@ -52,31 +52,31 @@ class QuestionBank {
     Question(
       id: 'rhyme_tree',
       prompt: 'TREE',
-      options: ['BEE', 'BIRD', 'LEAF'],
+      options: ['BEE', 'BIRD', 'LEAF', 'DOG'],
       correctAnswer: 'BEE',
     ),
     Question(
       id: 'rhyme_fox',
       prompt: 'FOX',
-      options: ['BOX', 'WOLF', 'TAIL'],
+      options: ['BOX', 'WOLF', 'TAIL', 'CAT'],
       correctAnswer: 'BOX',
     ),
     Question(
       id: 'rhyme_light',
       prompt: 'LIGHT',
-      options: ['NIGHT', 'LAMP', 'DARK'],
+      options: ['NIGHT', 'LAMP', 'DARK', 'SUN'],
       correctAnswer: 'NIGHT',
     ),
     Question(
       id: 'rhyme_rain',
       prompt: 'RAIN',
-      options: ['TRAIN', 'CLOUD', 'WET'],
+      options: ['TRAIN', 'CLOUD', 'WET', 'EAT'],
       correctAnswer: 'TRAIN',
     ),
     Question(
       id: 'rhyme_house',
       prompt: 'HOUSE',
-      options: ['MOUSE', 'DOOR', 'ROOM'],
+      options: ['MOUSE', 'DOOR', 'ROOM', 'CAR'],
       correctAnswer: 'MOUSE',
     ),
   ];

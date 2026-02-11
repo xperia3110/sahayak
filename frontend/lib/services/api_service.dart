@@ -227,4 +227,29 @@ class ApiService {
       throw Exception('Network error: $e');
     }
   }
+
+  // Analyze Dyslexia (Echo Explorers)
+  static Future<Map<String, dynamic>> analyzeDyslexia(
+    String token, 
+    List<Map<String, dynamic>> results,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/games/analyze-dyslexia/'),
+        headers: _getHeaders(token),
+        body: jsonEncode({
+          'results': results,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error'] ?? 'Analysis failed');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
 }

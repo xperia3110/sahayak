@@ -19,6 +19,7 @@ dependencies:
   rive: ^0.13.15 # Animations
   flame_rive: ^1.10.0 # Rive integration for Flame
   flame_audio: ^2.10.0 # Audio for Flame games
+  flutter_tts: ^4.2.0 # Text-to-Speech for questions
 
 dev_dependencies:
   flutter_test:
