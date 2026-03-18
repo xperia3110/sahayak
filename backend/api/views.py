@@ -114,21 +114,20 @@ def analyze_dyslexia(request):
     """
     Analyze phonological awareness and RAN for Dyslexia screening.
     Expects JSON: {
-        'results': [
-            {
-                'question_id': str,
-                'prompt': str,
-                'user_answer': str,
-                'is_correct': bool,
-                'reaction_time_ms': int
-            }
-        ]
+        'session_id': int,
+        'results': [...]
     }
     """
+    session_id = request.data.get('session_id')
     results = request.data.get('results', [])
     
-    if not results:
-        return Response({'error': 'No results provided'}, status=status.HTTP_400_BAD_REQUEST)
+    if not session_id or not results:
+        return Response({'error': 'Session ID and results are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        game_session = GameSession.objects.get(pk=session_id)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'GameSession not found.'}, status=status.HTTP_404_NOT_FOUND)
     
     try:
         # Calculate metrics
@@ -157,10 +156,24 @@ def analyze_dyslexia(request):
         
         # Risk assessment
         risk_level = 'low'
+        dyslexia_risk_value = 0.1
         if phonological_score < 60 or ran_score < 50:
             risk_level = 'high'
+            dyslexia_risk_value = 0.8
         elif phonological_score < 80 or ran_score < 70:
             risk_level = 'moderate'
+            dyslexia_risk_value = 0.5
+            
+        # Save to AnalysisResult
+        from .models import AnalysisResult
+        obj, created = AnalysisResult.objects.get_or_create(session=game_session)
+        obj.dyslexia_risk = dyslexia_risk_value
+        obj.report_summary += f"\nDyslexia screening complete. Accuracy: {round(accuracy, 1)}%. Processing: {processing_speed}. Risk: {risk_level}."
+        obj.save()
+        
+        # Mark session completed
+        game_session.completed = True
+        game_session.save()
         
         return Response({
             'accuracy': round(accuracy, 1),
@@ -170,6 +183,105 @@ def analyze_dyslexia(request):
             'ran_score': ran_score,
             'processing_speed': processing_speed,
             'phonological_score': round(phonological_score, 1),
+            'risk_level': risk_level,
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def analyze_dyscalculia(request):
+    """
+    Analyze number sense and comparison for Dyscalculia screening.
+    Expects JSON: {
+        'session_id': int,
+        'results': [...]
+    }
+    """
+    session_id = request.data.get('session_id')
+    results = request.data.get('results', [])
+    
+    if not session_id or not results:
+        return Response({'error': 'Session ID and results are required'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        game_session = GameSession.objects.get(pk=session_id)
+    except GameSession.DoesNotExist:
+        return Response({'error': 'GameSession not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    try:
+        total_games = len(results)
+        correct_count = sum(1 for r in results if r.get('is_correct'))
+        accuracy = (correct_count / total_games) * 100 if total_games > 0 else 0
+        
+        # Analyze by game mode
+        subitizing_results = [r for r in results if r.get('game_mode') == 'subitizing']
+        comparison_results = [r for r in results if r.get('game_mode') == 'comparison']
+        
+        # Subitizing Analysis
+        subitizing_score = 0
+        if subitizing_results:
+            sub_correct = sum(1 for r in subitizing_results if r.get('is_correct'))
+            sub_total = len(subitizing_results)
+            subitizing_score = (sub_correct / sub_total) * 100
+        
+        # Comparison Analysis (Distance Effect)
+        comparison_score = 0
+        distance_effect_detected = False
+        if comparison_results:
+            comp_correct = sum(1 for r in comparison_results if r.get('is_correct'))
+            comp_total = len(comparison_results)
+            comparison_score = (comp_correct / comp_total) * 100
+            
+            # Simple distance effect check: are they slower on close numbers (low ratio)?
+            low_ratio = [r for r in comparison_results if r.get('ratio_type') == 'low']
+            high_ratio = [r for r in comparison_results if r.get('ratio_type') == 'high']
+            
+            if low_ratio and high_ratio:
+                avg_low = sum(r.get('reaction_time_ms', 0) for r in low_ratio) / len(low_ratio)
+                avg_high = sum(r.get('reaction_time_ms', 0) for r in high_ratio) / len(high_ratio)
+                
+                # If low ratio (harder) takes significantly longer (> 500ms), strong distance effect
+                distance_effect_detected = (avg_low - avg_high) > 500
+
+        # Overall Risk Calculation
+        risk_level = 'low'
+        if accuracy < 60:
+            risk_level = 'high'
+        elif accuracy < 80:
+            risk_level = 'moderate'
+            
+        if not distance_effect_detected:
+            # Lack of distance effect is a strong indicator of dyscalculia
+            if risk_level == 'moderate': 
+                risk_level = 'high'
+            elif risk_level == 'low':
+                risk_level = 'moderate'
+                
+        dyscalculia_risk_value = 0.1
+        if risk_level == 'high':
+            dyscalculia_risk_value = 0.8
+        elif risk_level == 'moderate':
+            dyscalculia_risk_value = 0.5
+            
+        # Save to AnalysisResult
+        from .models import AnalysisResult
+        obj, created = AnalysisResult.objects.get_or_create(session=game_session)
+        obj.dyscalculia_risk = dyscalculia_risk_value
+        obj.report_summary += f"\nDyscalculia screening complete. Accuracy: {round(accuracy, 1)}%. Distance Effect expected: {distance_effect_detected}. Risk: {risk_level}."
+        obj.save()
+        
+        # Mark session completed
+        game_session.completed = True
+        game_session.save()
+                
+        return Response({
+            'accuracy': round(accuracy, 1),
+            'correct_count': correct_count,
+            'total_games': total_games,
+            'subitizing_score': round(subitizing_score, 1),
+            'comparison_score': round(comparison_score, 1),
+            'distance_effect_detected': distance_effect_detected,
             'risk_level': risk_level,
         })
     except Exception as e:
@@ -258,3 +370,67 @@ def analyze_stroke(request):
         return Response(results)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_child_report(request, child_id):
+    """
+    Get aggregated summary report for a specific child based on their latest GameSessions.
+    """
+    try:
+        child = Child.objects.get(id=child_id, parent=request.user)
+    except Child.DoesNotExist:
+        return Response({'error': 'Child not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Get all completed sessions for this child
+    sessions = GameSession.objects.filter(child=child, completed=True).prefetch_related('analysisresult')
+    
+    if not sessions.exists():
+        return Response({
+            'message': 'No completed games yet.',
+            'dyslexia_risk': 0.0,
+            'dysgraphia_risk': 0.0,
+            'dyscalculia_risk': 0.0,
+            'summary': 'Play some games to get a report!'
+        })
+        
+    dyslexia_risks = []
+    dysgraphia_risks = []
+    dyscalculia_risks = []
+    
+    for session in sessions:
+        if hasattr(session, 'analysisresult'):
+            ar = session.analysisresult
+            if ar.dyslexia_risk is not None:
+                dyslexia_risks.append(ar.dyslexia_risk)
+            if ar.dysgraphia_risk is not None:
+                dysgraphia_risks.append(ar.dysgraphia_risk)
+            if ar.dyscalculia_risk is not None:
+                dyscalculia_risks.append(ar.dyscalculia_risk)
+                
+    avg_dyslexia = sum(dyslexia_risks) / len(dyslexia_risks) if dyslexia_risks else 0.0
+    avg_dysgraphia = sum(dysgraphia_risks) / len(dysgraphia_risks) if dysgraphia_risks else 0.0
+    avg_dyscalculia = sum(dyscalculia_risks) / len(dyscalculia_risks) if dyscalculia_risks else 0.0
+    
+    # Overall diagnosis logic
+    diagnosis = []
+    if avg_dyslexia >= 0.6: diagnosis.append("Dyslexia (High Risk)")
+    elif avg_dyslexia >= 0.4: diagnosis.append("Dyslexia (Moderate Risk)")
+        
+    if avg_dysgraphia >= 0.6: diagnosis.append("Dysgraphia (High Risk)")
+    elif avg_dysgraphia >= 0.4: diagnosis.append("Dysgraphia (Moderate Risk)")
+        
+    if avg_dyscalculia >= 0.6: diagnosis.append("Dyscalculia (High Risk)")
+    elif avg_dyscalculia >= 0.4: diagnosis.append("Dyscalculia (Moderate Risk)")
+        
+    if not diagnosis:
+        summary = "Child is performing well within normal ranges. No immediate risks detected."
+    else:
+        summary = "Potential risks detected in: " + ", ".join(diagnosis) + ". We recommend consulting an educational specialist for a formal evaluation."
+        
+    return Response({
+        'dyslexia_risk': round(avg_dyslexia, 2),
+        'dysgraphia_risk': round(avg_dysgraphia, 2),
+        'dyscalculia_risk': round(avg_dyscalculia, 2),
+        'summary': summary
+    })

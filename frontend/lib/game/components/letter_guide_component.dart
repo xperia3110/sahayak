@@ -86,6 +86,146 @@ class LetterGuideComponent extends PositionComponent {
         _path.moveTo(left, midY);
         _path.lineTo(right - letterWidth * 0.2, midY);
         break;
+      case 'F':
+        _path.moveTo(right, top);
+        _path.lineTo(left, top);
+        _path.lineTo(left, bottom);
+        _path.moveTo(left, midY);
+        _path.lineTo(right - letterWidth * 0.2, midY);
+        break;
+      case 'G':
+        _path.moveTo(right, top + letterHeight * 0.15);
+        _path.quadraticBezierTo(left - letterWidth * 0.2, top, left, midY);
+        _path.quadraticBezierTo(left - letterWidth * 0.2, bottom, right, bottom - letterHeight * 0.15);
+        _path.lineTo(right, midY);
+        _path.lineTo(center.x, midY);
+        break;
+      case 'H':
+        _path.moveTo(left, top);
+        _path.lineTo(left, bottom);
+        _path.moveTo(right, top);
+        _path.lineTo(right, bottom);
+        _path.moveTo(left, midY);
+        _path.lineTo(right, midY);
+        break;
+      case 'I':
+        _path.moveTo(center.x, top);
+        _path.lineTo(center.x, bottom);
+        _path.moveTo(left + letterWidth * 0.2, top);
+        _path.lineTo(right - letterWidth * 0.2, top);
+        _path.moveTo(left + letterWidth * 0.2, bottom);
+        _path.lineTo(right - letterWidth * 0.2, bottom);
+        break;
+      case 'J':
+        _path.moveTo(right, top);
+        _path.lineTo(right, bottom - letterHeight * 0.2);
+        _path.quadraticBezierTo(right, bottom, center.x, bottom);
+        _path.quadraticBezierTo(left, bottom, left, bottom - letterHeight * 0.2);
+        break;
+      case 'K':
+        _path.moveTo(left, top);
+        _path.lineTo(left, bottom);
+        _path.moveTo(right, top);
+        _path.lineTo(left, midY);
+        _path.lineTo(right, bottom);
+        break;
+      case 'L':
+        _path.moveTo(left, top);
+        _path.lineTo(left, bottom);
+        _path.lineTo(right, bottom);
+        break;
+      case 'M':
+        _path.moveTo(left, bottom);
+        _path.lineTo(left, top);
+        _path.lineTo(center.x, midY);
+        _path.lineTo(right, top);
+        _path.lineTo(right, bottom);
+        break;
+      case 'N':
+        _path.moveTo(left, bottom);
+        _path.lineTo(left, top);
+        _path.lineTo(right, bottom);
+        _path.lineTo(right, top);
+        break;
+      case 'O':
+        _path.addOval(Rect.fromLTRB(left, top, right, bottom));
+        break;
+      case 'P':
+        _path.moveTo(left, bottom);
+        _path.lineTo(left, top);
+        _path.lineTo(right - letterWidth * 0.2, top);
+        _path.quadraticBezierTo(right + letterWidth * 0.1, top, right + letterWidth * 0.1, top + letterHeight * 0.25);
+        _path.quadraticBezierTo(right + letterWidth * 0.1, midY, right - letterWidth * 0.2, midY);
+        _path.lineTo(left, midY);
+        break;
+      case 'Q':
+        _path.addOval(Rect.fromLTRB(left, top, right, bottom));
+        _path.moveTo(center.x, midY + letterHeight * 0.2);
+        _path.lineTo(right, bottom);
+        break;
+      case 'R':
+        _path.moveTo(left, bottom);
+        _path.lineTo(left, top);
+        _path.lineTo(right - letterWidth * 0.2, top);
+        _path.quadraticBezierTo(right + letterWidth * 0.1, top, right + letterWidth * 0.1, top + letterHeight * 0.25);
+        _path.quadraticBezierTo(right + letterWidth * 0.1, midY, right - letterWidth * 0.2, midY);
+        _path.lineTo(left, midY);
+        _path.moveTo(center.x, midY);
+        _path.lineTo(right, bottom);
+        break;
+      case 'S':
+        _path.moveTo(right, top + letterHeight * 0.2);
+        _path.quadraticBezierTo(right, top, center.x, top);
+        _path.quadraticBezierTo(left, top, left, top + letterHeight * 0.2);
+        _path.quadraticBezierTo(left, midY, center.x, midY);
+        _path.quadraticBezierTo(right, midY, right, bottom - letterHeight * 0.2);
+        _path.quadraticBezierTo(right, bottom, center.x, bottom);
+        _path.quadraticBezierTo(left, bottom, left, bottom - letterHeight * 0.2);
+        break;
+      case 'T':
+        _path.moveTo(left, top);
+        _path.lineTo(right, top);
+        _path.moveTo(center.x, top);
+        _path.lineTo(center.x, bottom);
+        break;
+      case 'U':
+        _path.moveTo(left, top);
+        _path.lineTo(left, bottom - letterHeight * 0.2);
+        _path.quadraticBezierTo(left, bottom, center.x, bottom);
+        _path.quadraticBezierTo(right, bottom, right, bottom - letterHeight * 0.2);
+        _path.lineTo(right, top);
+        break;
+      case 'V':
+        _path.moveTo(left, top);
+        _path.lineTo(center.x, bottom);
+        _path.lineTo(right, top);
+        break;
+      case 'W':
+        _path.moveTo(left, top);
+        _path.lineTo(left + letterWidth * 0.25, bottom);
+        _path.lineTo(center.x, midY);
+        _path.lineTo(right - letterWidth * 0.25, bottom);
+        _path.lineTo(right, top);
+        break;
+      case 'X':
+        _path.moveTo(left, top);
+        _path.lineTo(right, bottom);
+        _path.moveTo(right, top);
+        _path.lineTo(left, bottom);
+        break;
+      case 'Y':
+        _path.moveTo(left, top);
+        _path.lineTo(center.x, midY);
+        _path.lineTo(right, top);
+        _path.moveTo(center.x, midY);
+        _path.lineTo(center.x, bottom);
+        break;
+      case 'Z':
+        _path.moveTo(left, top);
+        _path.lineTo(right, top);
+        _path.lineTo(left, bottom);
+        _path.lineTo(right, bottom);
+        break;
       default:
         // Fallback Circle
         _path.addOval(Rect.fromCircle(center: center.toOffset(), radius: 150 * letterScale));

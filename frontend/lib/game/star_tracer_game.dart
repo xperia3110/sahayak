@@ -33,7 +33,10 @@ class StarTracerGame extends FlameGame with PanDetector {
   
   // State
   GamePhase _phase = GamePhase.intro;
-  final List<String> _letterDeck = ['A', 'B', 'C', 'D', 'E'];
+  final List<String> _letterDeck = [
+    'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+  ];
   final List<String> _sessionLetters = [];
   int _currentLetterIndex = 0;
   

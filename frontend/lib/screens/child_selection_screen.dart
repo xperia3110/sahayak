@@ -4,9 +4,12 @@ import '../../providers/child_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'child_management_screen.dart'; // Reuse for adding child (Fixed path)
 import 'game_hub_screen.dart';
+import 'profile/report_screen.dart';
 
 class ChildSelectionScreen extends StatefulWidget {
-  const ChildSelectionScreen({super.key});
+  final bool isForReport;
+
+  const ChildSelectionScreen({super.key, this.isForReport = false});
 
   @override
   State<ChildSelectionScreen> createState() => _ChildSelectionScreenState();
@@ -86,17 +89,29 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
   Widget _buildChildCard(BuildContext context, dynamic childData) {
     return GestureDetector(
       onTap: () {
-        // Navigate to Game Hub with selected child context
-        Navigator.pushReplacement(
-          context,
+        if (widget.isForReport) {
+          Navigator.push(
+            context,
             MaterialPageRoute(
-            builder: (context) => GameHubScreen(
-              childId: childData['id'].toString(), // Adjust based on actual API response key
-              childName: childData['nickname'] ?? 'Child',
-              childAge: childData['age_in_months'] ?? 0,
+              builder: (context) => ReportScreen(
+                childId: childData['id'],
+                childName: childData['nickname'] ?? 'Child',
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Navigate to Game Hub with selected child context
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GameHubScreen(
+                childId: childData['id'].toString(), // Adjust based on actual API response key
+                childName: childData['nickname'] ?? 'Child',
+                childAge: childData['age_in_months'] ?? 0,
+              ),
+            ),
+          );
+        }
       },
       child: Card(
         elevation: 4,
@@ -113,6 +128,21 @@ class _ChildSelectionScreenState extends State<ChildSelectionScreen> {
             Text(
               childData['nickname'] ?? "Unknown",
               style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => ReportScreen(
+                  childId: childData['id'],
+                  childName: childData['nickname'] ?? 'Child',
+                )));
+              },
+              icon: const Icon(Icons.analytics, size: 16),
+              label: const Text("Report"),
+              style: TextButton.styleFrom(
+                minimumSize: Size.zero,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
             ),
           ],
         ),

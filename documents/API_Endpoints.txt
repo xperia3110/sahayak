@@ -1,0 +1,77 @@
+# API Endpoints Documentation
+
+All endpoints are hosted by the Django backend and generally require JWT Authentication (`Bearer <token>`).
+
+## Base URL: `/api/`
+
+---
+### 1. Authentication
+**Endpoint**: `POST /api/auth/login/`, `POST /api/auth/register/`
+- **Purpose**: JWT based user authentication. Returns refresh and access tokens.
+
+---
+### 2. Children Management
+**Endpoint**: `GET /api/children/` 
+- **Purpose**: Fetches all children registered under the authenticated professional/parent.
+
+**Endpoint**: `GET /api/children/<child_id>/report/`
+- **Purpose**: Generates the final aggregated comprehensive screening report.
+- **Processing**: 
+  - Queries `AnalysisResult` for the most recent game sessions per module for a specific child.
+  - Returns `dysgraphia_risk`, `dyslexia_risk`, `dyscalculia_risk` mapped to "Low", "Moderate", or "High".
+  - Returns a `summary` string outlining the diagnostic opinion.
+
+---
+### 3. Game State Management
+**Endpoint**: `POST /api/sessions/`
+- **Purpose**: Initializes a new game session. Generates a unique UUID and database row to link subsequent telemetry data against a specific child and game module.
+- **Request Body**: `{"child": 1, "game_name": "StarTracer"}`
+- **Response**: `{"id": <session_id>, "status": "in_progress"}`
+
+---
+### 4. Analysis Endpoints (The Core Engine)
+These endpoints receive raw telemetry from the games and run the predictive algorithms.
+
+**Endpoint**: `POST /api/games/analyze-stroke/`
+- **Purpose**: Processes Dysgraphia kinematics (Star Tracer).
+- **Request Body**: 
+```json
+{
+  "points": [{"x": 100, "y": 200, "t": 1612456789}, ...],
+  "target_points": [{"x": 100, "y": 200}, ...] 
+}
+```
+
+**Endpoint**: `POST /api/games/analyze-dyslexia/`
+- **Purpose**: Processes Dyslexia metrics (Echo Explorers).
+- **Request Body**:
+```json
+{
+  "session_id": 15,
+  "metrics": {
+    "correct_answers": 8,
+    "total_questions": 10,
+    "average_reaction_time": 1250.5 
+  }
+}
+```
+
+**Endpoint**: `POST /api/games/analyze-dyscalculia/`
+- **Purpose**: Processes Dyscalculia metrics (Monster Munch).
+- **Request Body**:
+```json
+{
+  "session_id": 16,
+  "gameName": "MonsterMunch",
+  "mechanic": "comparison", // or "subitizing"
+  "results": [
+    {
+      "reactionTime": 850,
+      "isCorrect": true,
+      "value": "7>4", 
+      "difficulty": 1
+    }, ...
+  ]
+}
+```
+- **Response**: Calculates the overall risk (0.0 to 1.0) and persists it directly into the `AnalysisResult` table for the session.

@@ -179,9 +179,21 @@ class _HomePageState extends State<HomePage> {
                     icon: Icons.analytics_outlined,
                     color: theme.colorScheme.secondary,
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Reports feature coming soon!")),
-                      );
+                      final childProvider = context.read<ChildProvider>();
+                      if (childProvider.children.isEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ChildManagementScreen()),
+                        ).then((_) {
+                          final token = context.read<AuthProvider>().token;
+                          if (token != null) childProvider.fetchChildren(token);
+                        });
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ChildSelectionScreen(isForReport: true)),
+                        );
+                      }
                     },
                   ),
                 ),

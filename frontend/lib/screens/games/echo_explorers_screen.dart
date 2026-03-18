@@ -181,6 +181,7 @@ class _EchoExplorersScreenState extends State<EchoExplorersScreen> with SingleTi
       try {
          await ApiService.analyzeDyslexia(
            authProvider.user!.token!, 
+           _sessionId!,
            _results.map((r) => r.toJson()).toList()
          );
          if(mounted) {

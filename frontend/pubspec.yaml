@@ -20,6 +20,9 @@ dependencies:
   flame_rive: ^1.10.0 # Rive integration for Flame
   flame_audio: ^2.10.0 # Audio for Flame games
   flutter_tts: ^4.2.0 # Text-to-Speech for questions
+  confetti: ^0.8.0 # Celebration effects
+  audioplayers: ^5.2.1 # Sound effects
+  google_fonts: ^6.1.0 # Typography
 
 dev_dependencies:
   flutter_test:
@@ -27,7 +30,7 @@ dev_dependencies:
   flutter_lints: ^3.0.0
 
 flutter:
-  uses-material-design: true  # ✅ Needed for Icons.star_rounded
+  uses-material-design: true  # Needed for Icons.star_rounded
   assets:
     - assets/rive/
     - assets/rive/echo_rive/

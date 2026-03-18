@@ -1,0 +1,54 @@
+# Backend Algorithms & Scoring Mechanics
+
+The backend (Django REST Framework) is responsible for processing raw telemetry and executing deterministic scoring algorithms to calculate a "Risk Score" (a float from 0.0 to 1.0) for each learning disability.
+
+## 1. Dysgraphia Scoring Algorithm (Star Tracer)
+**File location:** `backend/api/utils/kinematics.py` -> `KinematicAnalyzer`
+
+Dysgraphia is characterized by impaired letter writing, poor spatial planning, and high tremor or jitter. The algorithm takes an array of screen touches: `(x, y, timestamp)`.
+
+### How it works:
+1.  **Jitter / Tremor**: The code calculates the `velocity` (distance between points / time) and then `acceleration` (change in velocity). A high mean acceleration indicates a shaky hand (Tremor/Jitter). 
+2.  **Velocity Consistency**: Analyzes the standard deviation of velocity magnitudes compared to the mean. Rapid starting and stopping indicates poor motor planning. 
+3.  **Spatial Accuracy (RMSE)**: Calculates the Root Mean Square Error (RMSE) of the child's drawn path compared perfectly against the `target_points` of the letter. 
+
+### Final Scoring:
+It normalizes these three factors. Since touchscreens naturally produce jitter, the penalty for Jitter and Velocity CV is capped at 10 points each. Spatial inaccuracy (RMSE) has a much higher weight, penalizing up to 80 points.
+The system then calculates `100 - total_deductions`. If the score is `<30`, Dysgraphia Risk is high (`>0.6`). If the score is `>80`, Dysgraphia Risk is low (`<0.3`).
+
+---
+
+## 2. Dyslexia Scoring Algorithm (Echo Explorers)
+**File location:** `backend/api/views.py` -> `analyze_dyslexia()`
+
+Dyslexia involves difficulties with phonological processing and word recognition.
+
+### How it works:
+When the child finishes matching rhyming words, the game sends:
+- `correct_answers`
+- `total_questions`
+- `average_reaction_time`
+
+### Final Scoring:
+1. Calculates **Accuracy Percentage** (`correct / total`).
+2. Calculates **Speed Penalty**. Baseline reaction time is ~2 seconds depending on their age. Anything above 3 seconds indicates extreme cognitive delay in phoneme processing.
+3. The overall score combines heavily weighted Accuracy (70%) with Speed (30%). An accuracy below 60% combined with a reaction time `>4000ms` results in a High Risk flag (`>0.6`).
+
+---
+
+## 3. Dyscalculia Scoring Algorithm (Monster Munch)
+**File location:** `backend/api/views.py` -> `analyze_dyscalculia()`
+
+Dyscalculia affects number sense, subitizing (instantly knowing "how many"), and magnitude judgment.
+
+### How it works:
+Receives an array of game turns containing `reactionTime` and `isCorrect`.
+1.  **Subitizing Metric**: 
+    - The algorithm separates responses into "Small Numbers" (1-4) and "Large Numbers" (5-9).
+    - Normally, humans can subitize 1-4 instantly without counting. If the child's reaction time for small numbers is identical to large numbers (both are slow), it strongly indicates a fundamental lack of innate number sense.
+2.  **Distance Effect (Comparison)**:
+    - Judging `9 vs 8` should take longer than `9 vs 2` (The Distance Effect). 
+    - The algorithm analyzes whether their reaction times scale properly based on numerical distance.
+
+### Final Scoring:
+Poor accuracy (`<50%`) with flat or inverted reaction-time curves points to dyscalculia. The backend returns a calculated risk score float value between `0.0` and `1.0`.

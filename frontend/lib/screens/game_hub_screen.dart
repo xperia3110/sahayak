@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'games/star_tracer_screen.dart';
 import 'games/echo_explorers_screen.dart';
+import 'games/monster_munch/monster_menu_screen.dart';
 
 class GameHubScreen extends StatelessWidget {
   final String childId;
@@ -36,7 +37,7 @@ class GameHubScreen extends StatelessWidget {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.orange),
             ),
             const SizedBox(height: 20),
-            Expanded(
+              Expanded(
               child: ListView(
                 children: [
                   _buildGameCard(
@@ -82,7 +83,12 @@ class GameHubScreen extends StatelessWidget {
                     color: Colors.green.shade300,
                     icon: Icons.calculate,
                     onTap: () {
-                       _showComingSoon(context, "Monster Munch");
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => MonsterMenuScreen(
+                          childId: int.tryParse(childId) ?? 0,
+                        )),
+                      );
                     },
                   ),
                 ],

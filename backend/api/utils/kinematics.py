@@ -1,27 +1,9 @@
 import numpy as np
 
 class KinematicAnalyzer:
-    """
-    Medical-grade Kinematic Analysis module for Dysgraphia screening.
-    """
 
     @staticmethod
     def analyze_stroke(user_points, target_points=None):
-        """
-        Analyze a stroke path.
-        
-        Args:
-            user_points (list): List of dicts {'x': float, 'y': float, 't': int/float}
-            target_points (list, optional): List of dicts {'x': float, 'y': float} for reference.
-            
-        Returns:
-            dict: {
-                'rmse': float,
-                'jitter': float,
-                'velocity_consistency': float,
-                'score': float
-            }
-        """
         if not user_points or len(user_points) < 2:
             return {
                 'rmse': 0.0,
@@ -75,16 +57,26 @@ class KinematicAnalyzer:
 
         # 4. Final Score (0-100)
         # Normalize metrics and calculate score
-        # Jitter: 0-500 typical range -> normalize to 0-50 deduction
-        # Velocity CV: 0-2 typical range -> normalize to 0-30 deduction
-        # RMSE: 0-100 typical range -> normalize to 0-20 deduction
+        # For children tracing on a phone, jitter and velocity variations are natural
+        jitter_normalized = min(10, jitter_index * 0.01)
         
-        jitter_normalized = min(50, jitter_index * 0.1)  # Cap at 50
-        velocity_normalized = min(30, velocity_consistency * 15)  # Cap at 30
-        rmse_normalized = min(20, rmse * 0.2)  # Cap at 20
+        # Velocity CV: Touchscreens have wildly varying sample rates. cap at 10.
+        velocity_normalized = min(10, velocity_consistency * 4)
+        
+        # RMSE: Spatial accuracy is the most important factor.
+        # A good trace on a phone screen should have RMSE ~30-60. 
+        # A bad trace covering the screen is RMSE 150+.
+        # So we deduct points based on exactly how far off it is.
+        # If RMSE > 150, that's an extremely bad trace, deduct up to 70 points.
+        rmse_normalized = min(80, rmse * 0.4) 
         
         total_deduction = jitter_normalized + velocity_normalized + rmse_normalized
         final_score = max(0, 100 - total_deduction)
+
+        # Baseline boost: Give a small boost for completing the trace nicely 
+        # (if spatial accuracy was decent)
+        if final_score > 50:
+             final_score = min(100, final_score + 10)
 
         # Clamp to 0-100
         final_score = min(100, max(0, final_score))

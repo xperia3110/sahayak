@@ -231,6 +231,7 @@ class ApiService {
   // Analyze Dyslexia (Echo Explorers)
   static Future<Map<String, dynamic>> analyzeDyslexia(
     String token, 
+    int sessionId,
     List<Map<String, dynamic>> results,
   ) async {
     try {
@@ -238,6 +239,7 @@ class ApiService {
         Uri.parse('$baseUrl/games/analyze-dyslexia/'),
         headers: _getHeaders(token),
         body: jsonEncode({
+          'session_id': sessionId,
           'results': results,
         }),
       );
@@ -247,6 +249,52 @@ class ApiService {
       } else {
         final error = jsonDecode(response.body);
         throw Exception(error['error'] ?? 'Analysis failed');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Analyze Dyscalculia (Monster Munch)
+  static Future<Map<String, dynamic>> analyzeDyscalculia(
+    String token, 
+    int sessionId,
+    List<Map<String, dynamic>> results,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/games/analyze-dyscalculia/'),
+        headers: _getHeaders(token),
+        body: jsonEncode({
+          'session_id': sessionId,
+          'results': results,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error'] ?? 'Analysis failed');
+      }
+    } catch (e) {
+      throw Exception('Network error: $e');
+    }
+  }
+
+  // Get Child Report
+  static Future<Map<String, dynamic>> getChildReport(int childId, String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/children/$childId/report/'),
+        headers: _getHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['error'] ?? 'Failed to fetch report');
       }
     } catch (e) {
       throw Exception('Network error: $e');
