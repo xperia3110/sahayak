@@ -60,7 +60,8 @@ This approach provides a non-invasive, scalable, and engaging first step, empowe
 | **Flutter** | A cross-platform UI toolkit for building beautiful, natively compiled applications for web, mobile, and desktop from a single codebase. |
 | **Dart** | The programming language used by Flutter. |
 | **Rive** | For creating interactive and complex character animations (like the monster in "Monster Munch"). |
-| **Go Router** | For declarative, URL-based navigation in the web application. |
+| **Flame** | A lightweight game engine for Flutter, used to build the core mechanics of the screening games. |
+| **Flutter TTS** | Text-to-Speech integration for providing auditory prompts to children during games. |
 
 ### Backend
 | Technology | Description |
@@ -69,13 +70,12 @@ This approach provides a non-invasive, scalable, and engaging first step, empowe
 | **Django Rest Framework** | A powerful toolkit for building Web APIs, serving as the bridge to our Flutter frontend. |
 | **Python** | The core programming language for our backend and AI models. |
 
-### AI & Data Science
+### Data Science & Analysis
 | Technology | Description |
 | :--- | :--- |
-| **TensorFlow & Keras** | For building and training our deep learning models, specifically the CNN for handwriting analysis. |
-| **Scikit-learn** | For our classical machine learning models (like the final ensemble classifier) and data preprocessing. |
-| **Jupyter Notebooks** | For data exploration, model prototyping, and experimentation. |
-| **Pandas** | For data manipulation and analysis of our "blueprint" datasets. |
+| **NumPy** | Essential for advanced array manipulations, spatial calculations, and mathematical operations in kinematic analysis. |
+| **Custom Heuristics Engine** | Rule-based systems designed to calculate cognitive markers such as the distance effect, processing speed, and accuracy thresholds. |
+| **Kinematic Algorithms** | Algorithms that process raw stroke data to analyze spatial accuracy, jitter (tremor), and velocity consistency for dysgraphia screening. |
 
 ---
 ## 📂 Project Structure
@@ -86,8 +86,6 @@ sahayak/
 │   ├── venv/
 │   ├── sahayak_core/
 │   ├── api/
-│   ├── ml_models/
-│   ├── notebooks/
 │   └── manage.py
 └── frontend/
     ├── lib/
@@ -177,9 +175,8 @@ sahayak/
 1.  Ensure Backend is running.
 2.  Navigate to `sahayak/backend` and run:
     ```bash
-    python test_api.py
+    python API_testings/test_api.py
     ```
-    *(Note: This assumes `test_api.py` exists in the backend root based on project history)*
 
 ### Manual Frontend Test
 1.  Open the Flutter app.
@@ -194,12 +191,16 @@ Key endpoints available in the backend:
 - **Auth**:
     - `POST /api/auth/register/`
     - `POST /api/auth/login/`
+    - `POST /api/auth/logout/`
 - **Children**:
     - `GET /api/children/` (List profiles)
     - `POST /api/children/` (Create profile)
-- **Sessions**:
+    - `GET /api/children/<id>/report/` (Get detailed assessment report)
+- **Sessions & Analysis**:
     - `GET /api/sessions/` (View history)
-    - `POST /api/sessions/` (Save game data)
+    - `POST /api/games/analyze-stroke/` (Analyze dysgraphia screening data)
+    - `POST /api/games/analyze-dyslexia/` (Analyze dyslexia screening data)
+    - `POST /api/games/analyze-dyscalculia/` (Analyze dyscalculia screening data)
 
 ---
 ## 🔧 Troubleshooting

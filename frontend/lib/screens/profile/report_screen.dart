@@ -175,7 +175,7 @@ class _ReportScreenState extends State<ReportScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                 const SizedBox(height: 4),
                 Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
               ],
@@ -194,7 +194,7 @@ class _ReportScreenState extends State<ReportScreen> {
                   strokeWidth: 6,
                 ),
               ),
-              Text("$percent%", style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text("$percent%", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
             ],
           )
         ],
